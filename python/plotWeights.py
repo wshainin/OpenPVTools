@@ -18,7 +18,7 @@ from pvtools import *
 
 parser = argparse.ArgumentParser(description =
     "Plots OpenPV basis vectors from checkpoints or single pvp file.",
-    usage="plotWeights.py -p <input_path> [-o <output_path>]")
+    usage="plotWeights.py -i <input_path> [-o <output_path> -w -ns -np -he]")
 
 parser.add_argument("-i", "--input-path", type=str, required=True, 
     help="Input. If passed a pvp file, weights at each frame will be used." +
