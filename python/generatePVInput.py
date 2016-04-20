@@ -1,13 +1,13 @@
-import os
-#import sys
-import argparse
+import argparse, os
 import xml.etree.cElementTree as cet
+from subprocess import call
+from scipy.misc import imread, imsave, imresize
+from matplotlib.patches import Rectangle
+import matplotlib.pyplot as plt
 #import numpy as np
-#import math
-#import matplotlib.pyplot as plt
-#from skimage import exposure
 #from PIL import Image
 #from scipy.misc import toimage
+
 # Add paths
 #pv_path = os.path.abspath(
 #    os.environ['HOME']+'/workspace/OpenPV/pv-core/python/')
@@ -18,8 +18,8 @@ import xml.etree.cElementTree as cet
 from IPython import embed;
 
 parser = argparse.ArgumentParser(description =
-    "Traverses a directory tree and creates a txt file of image paths.",
-    usage="generatePVInput.py <input_path> <output_path> [-e 'png']")
+    "Traverses a directory tree and creates a txt file of image paths.", usage=
+    "generatePVInput.py <input_path> <output_path> [-e 'png' -a <xml_path>]")
 
 parser.add_argument("input_path", type=str, help="Path to input directory.")
 parser.add_argument("output_path", type=str, help="Path to output directory.")
@@ -41,7 +41,31 @@ def get_file_list(path, extension):
     print "Found %d files." % len(path_list)
     print "Sorting path list..."
     path_list.sort()
+
     return path_list
+
+def call_batch_convert(image_list, dim_list, num_procs):
+    print "Calling ImageMagick's convert with image list..."
+    new_list = []
+    resize_str = str(dim_list[0])+'x'+str(dim_list[1])
+    temp_path = os.getcwd() + '/.tmp.txt'
+    temp_file = open(temp_path,'w')
+
+    for path in image_list:
+        file_path, file_extension = os.path.splitext(path)
+        print>>temp_file, file_path 
+        new_list.append(file_path+'_'+resize_str+file_extension)
+    temp_file.close()
+    
+    convert_call = ('<'+temp_path+' xargs -P'+str(num_procs)+' -I % convert %'+
+        file_extension+' -resize '+resize_str+'^ -gravity center -crop '+
+        resize_str+'+0+0 +repage %_'+resize_str+file_extension)
+    
+    call(convert_call, shell=True)
+    os.remove(temp_path)
+
+    return new_list
+
 
 def ILSVRC_xml_parse(xml_path):
     annotated_objects = []
@@ -50,16 +74,25 @@ def ILSVRC_xml_parse(xml_path):
     for det_object in root.iter('object'):
         bounding_box = []
         bounding_box.append(det_object.find('name').text)
-        bounding_box.append(det_object.find('bndbox/xmin').text)
-        bounding_box.append(det_object.find('bndbox/xmax').text)
-        bounding_box.append(det_object.find('bndbox/ymin').text)
-        bounding_box.append(det_object.find('bndbox/ymax').text)
+        bounding_box.append(int(det_object.find('bndbox/xmin').text))
+        bounding_box.append(int(det_object.find('bndbox/xmax').text))
+        bounding_box.append(int(det_object.find('bndbox/ymin').text))
+        bounding_box.append(int(det_object.find('bndbox/ymax').text))
         annotated_objects.append(bounding_box)
 
     return annotated_objects
 
 def display_annotation(image_path, annotated_objects):
     print "Drawing annotations..."
+    img = imread(image_path)
+    plt.imshow(img)
+    for det_object in annotated_objects:
+        w = det_object[2] - det_object[1]
+        h = det_object[4] - det_object[3]
+        box = Rectangle((det_object[1], det_object[3]), w, h, 
+                        fill=False, linewidth=2.0, ec='red')
+        plt.gca().add_patch(box)
+    plt.show()
 
 def write_list_to_file(image_list, output_path):
     fpath = output_path + '/path_list.txt'
@@ -81,12 +114,22 @@ def main(args=None):
         assert os.path.isdir(annotation_path), "Invalid annotation path."
 
     image_list = get_file_list(input_path, file_extension)
-    xml_list = get_file_list(annotation_path, '.xml')
-    annotated_objects = ILSVRC_xml_parse(xml_list[10556])
+
+    new_list = call_batch_convert(image_list, [128, 72], 4)
+
+    #xml_list = get_file_list(annotation_path, '.xml')
+    #annotated_objects = ILSVRC_xml_parse(xml_list[10556])
+    #test_image = "/Users/wshainin/lennaHome/VID/ILSVRC2015/Data/VID/train/ILSVRC2015_VID_train_0000/ILSVRC2015_train_00010001/000000.JPEG"
+    #test_xml = "/Users/wshainin/lennaHome/VID/ILSVRC2015/Annotations/VID/train/ILSVRC2015_VID_train_0000/ILSVRC2015_train_00010001/000000.xml"
+    #test_image =      "/Users/wshainin/lennaHome/VID/ILSVRC2015/Data/VID/train/ILSVRC2015_VID_train_0000/ILSVRC2015_train_00097000/000000.JPEG"
+    #test_xml = "/Users/wshainin/lennaHome/VID/ILSVRC2015/Annotations/VID/train/ILSVRC2015_VID_train_0000/ILSVRC2015_train_00097000/000000.xml"
+    
+    #annotated_objects = ILSVRC_xml_parse(test_xml)
+    #display_annotation(test_image, annotated_objects)
 
 
 
-    #write_list_to_file(image_list, output_path)
+    write_list_to_file(new_list, output_path)
 
     embed()
 
