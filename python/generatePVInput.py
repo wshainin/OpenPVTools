@@ -115,7 +115,7 @@ def main(args=None):
 
     image_list = get_file_list(input_path, file_extension)
 
-    new_list = call_batch_convert(image_list, [128, 72], 4)
+    #new_list = call_batch_convert(image_list, [128, 72], 4)
 
     #xml_list = get_file_list(annotation_path, '.xml')
     #annotated_objects = ILSVRC_xml_parse(xml_list[10556])
@@ -129,7 +129,7 @@ def main(args=None):
 
 
 
-    write_list_to_file(new_list, output_path)
+    #write_list_to_file(new_list, output_path)
 
     embed()
 
