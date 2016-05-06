@@ -24,6 +24,7 @@ function pvpWeights(pvpFile)
       for i = 1: subplot_y
          row{i} = horzcat(weightspatch{(i-1) * subplot_x + 1 : min(i*subplot_x, weightsnumpatches)}); 
       end
+      keyboard
       row{subplot_y} = horzcat(row{subplot_y}, zeros(pS(1), pS(2) * subplot_x, pS(3)))(1:pS(1), 1:pS(2)*subplot_x, :);
       weights = vertcat(row{1:subplot_y});
       %%imshow(weights);

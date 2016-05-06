@@ -129,7 +129,7 @@ def main(args=None):
 
 
 
-    #write_list_to_file(new_list, output_path)
+    write_list_to_file(image_list, output_path)
 
     embed()
 
