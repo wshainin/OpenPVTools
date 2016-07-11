@@ -10,20 +10,21 @@ local stride           = 2
 local displayPeriod    = 400;   --Number of timesteps to find sparse approximation
 local numEpochs        = 1;     --Number of times to run through dataset
 local numImages        = 10000; --Total number of images in dataset
-local stopTime         = (numImages * displayPeriod * numEpochs) / nbatch;
+local stopTime         = math.ceil((numImages  * numEpochs) / nbatch) * displayPeriod;
 local writeStep        = -1; --displayPeriod; 
 local initialWriteTime = displayPeriod; 
 
-local runType          = "CIFAR_ISTA_COMPARE";
+local runType          = "CIFAR_ISTA_COMPARE_ENCODE_TEST_128";
 local runVersion       = 1;
 local workspacePath    = "/home/wshainin/workspace/";
-local inputPath        = workspacePath .. "cifar-10-batches-mat/test_batch_randorder.txt";
-local outputPath       = workspacePath .. "sandbox/" .. runType .. "_" .. runVersion;
+local compneuroPath    = "/nh/compneuro/scratch/wshainin/";
+local inputPath        = compneuroPath .. "cifar-10-batches-mat/test_batch_randorder_compneuro.txt";
+local outputPath       = compneuroPath .. "sandbox/" .. runType .. "_" .. runVersion;
 local checkpointPeriod = (displayPeriod * 100);
 
 local overcompleteness = 2;
-local numBasisVectors  = 256; --overcompleteness * (stride^2) * 3 * 2; -- nf = overcompleteness x (stride X) x (Stride Y) * (# color channels) * (2 if rectified) 
-local basisVectorFile  = '/home/wshainin/workspace/sandbox/S1ToImageReconS1Error_W.pvp'; --nil; --nil for initial weights, otherwise, specifies the weights file to load for dictionaries
+local numBasisVectors  = 128; --overcompleteness * (stride^2) * 3 * 2; -- nf = overcompleteness x (stride X) x (Stride Y) * (# color channels) * (2 if rectified) 
+local basisVectorFile  = compneuroPath..'128_S1ToImageReconS1Error_W.pvp'; --nil for initial weights, otherwise, specifies the weights file to load for dictionaries
 local plasticityFlag   = false;  --Determines if we are learning weights or holding them constant
 local momentumTau      = 200;   --The momentum parameter. A single weight update will last for momentumTau timesteps.
 local dWMax            = 10;    --The learning rate
@@ -319,7 +320,7 @@ local pvParameters = {
    S1EnergyProbe = {
       groupType = "ColumnEnergyProbe";
       message                             = nil;
-      textOutputFlag                      = true;
+      textOutputFlag                      = false;
       probeOutputFile                     = "S1EnergyProbe.txt";
       triggerLayerName                    = nil;
       energyProbe                         = nil;

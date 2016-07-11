@@ -11,7 +11,7 @@ sys.path.insert(0, pv_path)
 from pvtools import *
 
 # Debug
-from IPython import embed;
+#from IPython import embed;
 
 parser = argparse.ArgumentParser(description =
     "Concatenates the frames in batch pvp files into a sequential file.",
@@ -32,6 +32,7 @@ def main(args=None):
 
     assert os.path.isdir(input_path), "Invalid input path."
     path_list = []
+    print 'Recursively searching for %s in %s...' % (args.file_name, input_path)
     for dir_path, file_path, file_names in os.walk(input_path):
         if dir_path.endswith('.AppleDouble'):
             continue
@@ -40,18 +41,24 @@ def main(args=None):
             if re.search(file_name+'_\d+'+file_extension, f.lower()) and not f.startswith('.'):
                 path_list.append(os.path.join(dir_path, f))
     path_list.sort()
+    num_pvp_files = len(path_list)
     pv_values = []
     out_dict = {}
     pv_time = []
     pv_header = []
     n_batch = 32
 
+    print 'Reading pvp files...'
+    p = 1
     for pvp_file in path_list:
+        print 'PVP file: %s/%d' % (p, num_pvp_files)
         data = readpvpfile(pvp_file)
         pv_values.append(data['values'].toarray())
         pv_time.append(data['time'])
         ## TODO: keep track of nbands in each header for num_frames (It might vary)
         pv_header.append(data['header'])
+        p+=1
+    del data
 
     num_neurons = pv_header[0]['ny']*pv_header[0]['nx']*pv_header[0]['nf']
     num_frames = pv_header[0]['nbands']
@@ -60,28 +67,38 @@ def main(args=None):
 
     out_values = np.zeros((num_frames * n_batch + 16, num_neurons))
     out_time = np.zeros((num_frames * n_batch + 16))
-    remain_path = '/nh/compneuro/scratch/wshainin/sandbox/CIFAR_ISTA_COMPARE_ENCODE_TEST_REMAIN_1/S1.pvp'
-    remain_frames = readpvpfile(remain_path)['values'].toarray()
-    #remain_path = '/nh/compneuro/scratch/wshainin/sandbox/CIFAR_ISTA_COMPARE_ENCODE_TRAIN_REMAIN_1/S1.pvp'
+    #remain_path = '/nh/compneuro/scratch/wshainin/sandbox/CIFAR_ISTA_COMPARE_ENCODE_TEST_REMAIN_1/S1.pvp'
     #remain_frames = readpvpfile(remain_path)['values'].toarray()
+    remain_path = '/nh/compneuro/scratch/wshainin/sandbox/CIFAR_ISTA_COMPARE_ENCODE_TRAIN_REMAIN_1/S1.pvp'
+    remain_frames = readpvpfile(remain_path)['values'].toarray()
 
     out_idx = 0
+    print 'Combining matrices...'
+    p = 0
     for frame in range(num_frames):
-        for batch, values in enumerate(pv_values):
+        print 'Frame: %d/%d...' % (frame+1,num_frames)
+        for values in pv_values:
             out_values[out_idx, :] = values[frame,:]
             out_idx+=1
 
+    del pv_values
+    del values
     for r in range(16):
         out_values[num_frames * n_batch + r,:] = remain_frames[r, :]
+    del remain_frames
 
-    out_sparse = sp.coo_matrix(out_values)
+    print 'Generating sparse matrix...'
+    out_sparse = sp.csr_matrix(out_values)
+    del out_values
 
     out_dict['values'] = out_sparse
     out_dict['time'] = out_time
     pvp_shape = (pv_header[0]['ny'], pv_header[0]['nx'], pv_header[0]['nf'])
+    print 'Writing pvp file ...'
+
     writepvpfile(output_path, out_dict, pvp_shape)
 
-    embed()
+    #embed()
 
 if __name__ == "__main__":
     main()

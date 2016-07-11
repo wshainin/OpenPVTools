@@ -1,10 +1,10 @@
-import argparse, os
+import argparse, os, sys
 import xml.etree.cElementTree as cet
 from subprocess import call
 from scipy.misc import imread, imsave, imresize
 from matplotlib.patches import Rectangle
 import matplotlib.pyplot as plt
-#import numpy as np
+import numpy as np
 #from PIL import Image
 #from scipy.misc import toimage
 
@@ -113,11 +113,36 @@ def main(args=None):
         annotation_path = os.path.abspath(args.annotation_path)
         assert os.path.isdir(annotation_path), "Invalid annotation path."
 
-    image_list = get_file_list(input_path, file_extension)
+    #image_list = get_file_list(input_path, file_extension)
 
     #new_list = call_batch_convert(image_list, [128, 72], 4)
 
-    #xml_list = get_file_list(annotation_path, '.xml')
+    xml_list = get_file_list(annotation_path, '.xml')
+    annotation_list = []
+    print "Reading objects from xml files..."
+    num_files = len(xml_list)
+    #avg = np.zeros((num_files, 2))
+    bbox_x_sum = 0
+    bbox_y_sum = 0
+    num_annotations = 0
+    for xml_num, xml_file in enumerate(xml_list):
+        sys.stdout.flush()
+        sys.stdout.write("\rReading XML file %d/%d..." % (xml_num, num_files))
+        #annotation_list.append(ILSVRC_xml_parse(file))
+        annotation = ILSVRC_xml_parse(xml_file)
+        if not annotation:
+            continue
+        bbox_x_sum += (annotation[0][2] - annotation[0][1])
+        bbox_y_sum += (annotation[0][4] - annotation[0][3])
+        num_annotations += 1
+    avg_x = bbox_x/num_annotations
+    avg_y = bbox_x/num_annotations
+    print "Average bounding box size is: %dX%d." % (avg_x, avg_y)
+
+    
+
+    
+        
     #annotated_objects = ILSVRC_xml_parse(xml_list[10556])
     #test_image = "/Users/wshainin/lennaHome/VID/ILSVRC2015/Data/VID/train/ILSVRC2015_VID_train_0000/ILSVRC2015_train_00010001/000000.JPEG"
     #test_xml = "/Users/wshainin/lennaHome/VID/ILSVRC2015/Annotations/VID/train/ILSVRC2015_VID_train_0000/ILSVRC2015_train_00010001/000000.xml"
@@ -129,7 +154,7 @@ def main(args=None):
 
 
 
-    write_list_to_file(image_list, output_path)
+    #write_list_to_file(image_list, output_path)
 
     embed()
 
